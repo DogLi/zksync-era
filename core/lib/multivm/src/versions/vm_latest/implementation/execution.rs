@@ -42,7 +42,7 @@ impl<S: WriteStorage, H: HistoryMode> Vm<S, H> {
     }
 
     /// Get the VM execution Logs
-    pub fn get_logs(&mut self) -> VmExecutionLogs {
+    pub fn get_logs(&self) -> VmExecutionLogs {
         let timestamp_initial = Timestamp(self.state.local_state.timestamp);
         let logs = self.collect_execution_logs_after_timestamp(timestamp_initial);
         logs

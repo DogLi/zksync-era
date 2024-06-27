@@ -371,8 +371,8 @@ impl TxSender {
             block_args,
         )
         .await?;
-        let (mut vm, _) = sandbox.into_vm(&tx, adjust_pubdata_price);
-        match vm.as_mut() {
+        let (vm, _) = sandbox.into_vm(&tx, adjust_pubdata_price);
+        match vm.as_ref() {
             VmInstance::Vm1_5_0(vm) => {
                 let logs = vm.get_logs();
                 Ok(logs)
