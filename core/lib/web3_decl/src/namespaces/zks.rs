@@ -131,4 +131,10 @@ pub trait ZksNamespace {
         &self,
         tx_bytes: Bytes,
     ) -> RpcResult<TransactionDetailedResult>;
+
+    #[method(name = "getRawTransactionLogs")]
+    async fn get_raw_transaction_logs(
+        &self,
+        tx_bytes: Bytes,
+    ) -> RpcResult<TransactionPreExecuteInfo>;
 }

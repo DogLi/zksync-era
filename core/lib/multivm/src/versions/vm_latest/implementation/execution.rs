@@ -16,9 +16,10 @@ use crate::{
     },
     HistoryMode,
 };
+use crate::vm_latest::VmExecutionLogs;
 
 impl<S: WriteStorage, H: HistoryMode> Vm<S, H> {
-    pub(crate) fn inspect_inner(
+    pub fn inspect_inner(
         &mut self,
         dispatcher: TracerDispatcher<S, H::Vm1_5_0>,
         execution_mode: VmExecutionMode,
@@ -38,6 +39,13 @@ impl<S: WriteStorage, H: HistoryMode> Vm<S, H> {
             custom_pubdata_tracer,
         );
         result
+    }
+
+    /// Get the VM execution Logs
+    pub fn get_logs(&mut self) -> VmExecutionLogs {
+        let timestamp_initial = Timestamp(self.state.local_state.timestamp);
+        let logs = self.collect_execution_logs_after_timestamp(timestamp_initial);
+        logs
     }
 
     /// Execute VM with given traces until the stop reason is reached.

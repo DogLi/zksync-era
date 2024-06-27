@@ -3,15 +3,15 @@
 use std::{sync::Arc, time::Instant};
 
 use anyhow::Context as _;
-use multivm::{
-    interface::VmExecutionResultAndLogs,
-    utils::{
-        adjust_pubdata_price_for_tx, derive_base_fee_and_gas_per_pubdata, derive_overhead,
-        get_eth_call_gas_limit, get_max_batch_gas_limit,
-    },
-    vm_latest::constants::BATCH_COMPUTATIONAL_GAS_LIMIT,
-};
+use multivm::{interface::VmExecutionResultAndLogs, MultiVMTracer, utils::{
+    adjust_pubdata_price_for_tx, derive_base_fee_and_gas_per_pubdata, derive_overhead,
+    get_eth_call_gas_limit, get_max_batch_gas_limit,
+}, vm_latest::constants::BATCH_COMPUTATIONAL_GAS_LIMIT, VmInstance};
 use tokio::sync::RwLock;
+use multivm::interface::{BytecodeCompressionError, VmInterface};
+use multivm::tracers::StorageInvocations;
+use multivm::vm_latest::{HistoryDisabled, VmExecutionLogs};
+use multivm::zk_evm_latest::aux_structures::Timestamp;
 use zksync_config::configs::{api::Web3JsonRpcConfig, chain::StateKeeperConfig};
 use zksync_contracts::BaseSystemContracts;
 use zksync_dal::{
@@ -351,6 +351,35 @@ impl TxSender {
             .connection_tagged("api")
             .await
             .context("failed acquiring connection to replica DB")
+    }
+
+    #[tracing::instrument(level = "debug", skip_all, fields(tx.hash = ?tx.hash()))]
+    pub async fn execute_tx_in_sandbox(
+        &self,
+        tx: L2Tx,
+    ) -> Result<VmExecutionLogs, SubmitTxError> {
+        let shared_args = self.shared_args().await?;
+        let mut connection = self.acquire_replica_connection().await?;
+        let block_args = BlockArgs::pending(&mut connection).await?;
+        let adjust_pubdata_price = true;
+        let execution_args = TxExecutionArgs::for_validation(&tx);
+        let tx = tx.clone().into();
+        let sandbox = crate::execution_sandbox::apply::Sandbox::new(
+            connection,
+            shared_args,
+            &execution_args,
+            block_args,
+        ).await?;
+        let (mut vm, _) = sandbox.into_vm(&tx, adjust_pubdata_price);
+        match &mut vm {
+            VmInstance::Vm1_5_0(vm) => {
+                let logs = vm.get_logs();
+                Ok(logs)
+            },
+            _ => {
+                Err(SubmitTxError::Internal(anyhow::anyhow!("Invalid vm version")))
+            }
+        }
     }
 
     #[tracing::instrument(level = "debug", skip_all, fields(tx.hash = ?tx.hash()))]

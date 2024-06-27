@@ -12,6 +12,7 @@ use zksync_types::{
     web3::Bytes,
     Address, L1BatchNumber, L2BlockNumber, StorageLogQueryType, H256, U256, U64,
 };
+use zksync_types::api::TransactionPreExecuteInfo;
 use zksync_web3_decl::{
     jsonrpsee::core::{async_trait, RpcResult},
     namespaces::ZksNamespaceServer,
@@ -212,6 +213,20 @@ impl ZksNamespaceServer for ZksNamespace {
                         l
                     })
                     .collect_vec(),
+            })
+            .map_err(|err| self.current_method().map_err(err))
+    }
+    async fn get_raw_transaction_logs(
+        &self,
+        tx_bytes: Bytes,
+    ) -> RpcResult<TransactionPreExecuteInfo> {
+        self.get_raw_transaction_logs_impl(tx_bytes)
+            .await.map(|(hash, result)| TransactionPreExecuteInfo {
+                events: result.events.iter().map(|x|{
+                    let mut l = Log::from(x);
+                    l.transaction_hash = Some(hash);
+                    l
+                }).collect_vec(),
             })
             .map_err(|err| self.current_method().map_err(err))
     }
