@@ -23,7 +23,7 @@ pub(super) use self::{
 use super::tx_sender::MultiVMBaseSystemContracts;
 
 // Note: keep the modules private, and instead re-export functions that make public interface.
-mod apply;
+pub(crate) mod apply;
 mod error;
 mod execute;
 pub mod testonly;

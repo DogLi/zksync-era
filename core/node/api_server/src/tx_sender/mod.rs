@@ -9,6 +9,7 @@ use zksync_contracts::BaseSystemContracts;
 use zksync_dal::{
     transactions_dal::L2TxSubmissionResult, Connection, ConnectionPool, Core, CoreDal,
 };
+use multivm::vm_latest::VmExecutionLogs;
 use zksync_multivm::{
     interface::VmExecutionResultAndLogs,
     utils::{
@@ -16,6 +17,7 @@ use zksync_multivm::{
         get_eth_call_gas_limit, get_max_batch_gas_limit,
     },
     vm_latest::constants::BATCH_COMPUTATIONAL_GAS_LIMIT,
+    VmInstance,
 };
 use zksync_node_fee_model::{ApiFeeInputProvider, BatchFeeModelInputProvider};
 use zksync_state::PostgresStorageCaches;
@@ -45,6 +47,7 @@ use crate::{
     },
     tx_sender::result::ApiCallResult,
 };
+use crate::execution_sandbox::apply::Sandbox;
 
 pub mod master_pool_sink;
 pub mod proxy;
@@ -351,6 +354,33 @@ impl TxSender {
             .connection_tagged("api")
             .await
             .context("failed acquiring connection to replica DB")
+    }
+
+    #[tracing::instrument(level = "debug", skip_all, fields(tx.hash = ?tx.hash()))]
+    pub async fn execute_tx_in_sandbox(&self, tx: L2Tx) -> Result<VmExecutionLogs, SubmitTxError> {
+        let shared_args = self.shared_args().await?;
+        let mut connection = self.acquire_replica_connection().await?;
+        let block_args = BlockArgs::pending(&mut connection).await?;
+        let adjust_pubdata_price = true;
+        let execution_args = TxExecutionArgs::for_validation(&tx);
+        let tx = tx.clone().into();
+        let sandbox = Sandbox::new(
+            connection,
+            shared_args,
+            &execution_args,
+            block_args,
+        )
+        .await?;
+        let (mut vm, _) = sandbox.into_vm(&tx, adjust_pubdata_price);
+        match vm.as_mut() {
+            VmInstance::Vm1_5_0(vm) => {
+                let logs = vm.get_logs();
+                Ok(logs)
+            }
+            _ => Err(SubmitTxError::Internal(anyhow::anyhow!(
+                "Invalid vm version"
+            ))),
+        }
     }
 
     #[tracing::instrument(level = "debug", skip_all, fields(tx.hash = ?tx.hash()))]

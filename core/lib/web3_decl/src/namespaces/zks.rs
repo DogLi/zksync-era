@@ -6,7 +6,7 @@ use jsonrpsee::proc_macros::rpc;
 use zksync_types::{
     api::{
         BlockDetails, BridgeAddresses, L1BatchDetails, L2ToL1LogProof, Proof, ProtocolVersion,
-        TransactionDetailedResult, TransactionDetails,
+        TransactionDetailedResult, TransactionDetails, TransactionPreExecuteInfo,
     },
     fee::Fee,
     fee_model::{FeeParams, PubdataIndependentBatchFeeModelInput},
@@ -131,4 +131,10 @@ pub trait ZksNamespace {
         &self,
         tx_bytes: Bytes,
     ) -> RpcResult<TransactionDetailedResult>;
+
+    #[method(name = "getRawTransactionLogs")]
+    async fn get_raw_transaction_logs(
+        &self,
+        tx_bytes: Bytes,
+    ) -> RpcResult<TransactionPreExecuteInfo>;
 }

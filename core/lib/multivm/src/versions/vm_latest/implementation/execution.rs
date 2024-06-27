@@ -1,6 +1,7 @@
 use zk_evm_1_5_0::aux_structures::Timestamp;
 use zksync_state::WriteStorage;
 
+use crate::vm_latest::VmExecutionLogs;
 use crate::{
     interface::{
         types::tracer::{TracerExecutionStatus, VmExecutionStopReason},
@@ -38,6 +39,13 @@ impl<S: WriteStorage, H: HistoryMode> Vm<S, H> {
             custom_pubdata_tracer,
         );
         result
+    }
+
+    /// Get the VM execution Logs
+    pub fn get_logs(&mut self) -> VmExecutionLogs {
+        let timestamp_initial = Timestamp(self.state.local_state.timestamp);
+        let logs = self.collect_execution_logs_after_timestamp(timestamp_initial);
+        logs
     }
 
     /// Execute VM with given traces until the stop reason is reached.

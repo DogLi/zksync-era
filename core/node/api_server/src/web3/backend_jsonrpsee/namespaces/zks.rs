@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use itertools::Itertools;
+use zksync_types::api::TransactionPreExecuteInfo;
 use zksync_types::{
     api::{
         ApiStorageLog, BlockDetails, BridgeAddresses, L1BatchDetails, L2ToL1LogProof, Log, Proof,
@@ -209,6 +210,25 @@ impl ZksNamespaceServer for ZksNamespace {
                     .map(|x| {
                         let mut l = Log::from(x);
                         l.transaction_hash = Some(result.0);
+                        l
+                    })
+                    .collect_vec(),
+            })
+            .map_err(|err| self.current_method().map_err(err))
+    }
+    async fn get_raw_transaction_logs(
+        &self,
+        tx_bytes: Bytes,
+    ) -> RpcResult<TransactionPreExecuteInfo> {
+        self.get_raw_transaction_logs_impl(tx_bytes)
+            .await
+            .map(|(hash, result)| TransactionPreExecuteInfo {
+                events: result
+                    .events
+                    .iter()
+                    .map(|x| {
+                        let mut l = Log::from(x);
+                        l.transaction_hash = Some(hash);
                         l
                     })
                     .collect_vec(),

@@ -814,6 +814,12 @@ pub struct TransactionDetailedResult {
     pub events: Vec<Log>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TransactionPreExecuteInfo {
+    pub events: Vec<Log>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiStorageLog {

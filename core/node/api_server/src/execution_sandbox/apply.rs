@@ -41,7 +41,7 @@ use super::{
 type BoxedVm<'a> = Box<VmInstance<StorageView<PostgresStorage<'a>>, HistoryDisabled>>;
 
 #[derive(Debug)]
-struct Sandbox<'a> {
+pub struct Sandbox<'a> {
     system_env: SystemEnv,
     l1_batch_env: L1BatchEnv,
     execution_args: &'a TxExecutionArgs,
@@ -50,7 +50,7 @@ struct Sandbox<'a> {
 }
 
 impl<'a> Sandbox<'a> {
-    async fn new(
+    pub async fn new(
         mut connection: Connection<'a, Core>,
         shared_args: TxSharedArgs,
         execution_args: &'a TxExecutionArgs,
@@ -255,7 +255,7 @@ impl<'a> Sandbox<'a> {
     }
 
     /// This method is blocking.
-    fn into_vm(
+    pub fn into_vm(
         mut self,
         tx: &Transaction,
         adjust_pubdata_price: bool,
