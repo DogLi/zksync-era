@@ -3,13 +3,13 @@
 use std::{sync::Arc, time::Instant};
 
 use anyhow::Context as _;
+use multivm::vm_latest::VmExecutionLogs;
 use tokio::sync::RwLock;
 use zksync_config::configs::{api::Web3JsonRpcConfig, chain::StateKeeperConfig};
 use zksync_contracts::BaseSystemContracts;
 use zksync_dal::{
     transactions_dal::L2TxSubmissionResult, Connection, ConnectionPool, Core, CoreDal,
 };
-use multivm::vm_latest::VmExecutionLogs;
 use zksync_multivm::{
     interface::VmExecutionResultAndLogs,
     utils::{
@@ -40,6 +40,7 @@ use zksync_utils::h256_to_u256;
 
 pub(super) use self::result::SubmitTxError;
 use self::{master_pool_sink::MasterPoolSink, tx_sink::TxSink};
+use crate::execution_sandbox::apply::Sandbox;
 use crate::{
     execution_sandbox::{
         BlockArgs, SubmitTxStage, TransactionExecutor, TxExecutionArgs, TxSharedArgs,
@@ -47,7 +48,6 @@ use crate::{
     },
     tx_sender::result::ApiCallResult,
 };
-use crate::execution_sandbox::apply::Sandbox;
 
 pub mod master_pool_sink;
 pub mod proxy;
@@ -364,13 +364,7 @@ impl TxSender {
         let adjust_pubdata_price = true;
         let execution_args = TxExecutionArgs::for_validation(&tx);
         let tx = tx.clone().into();
-        let sandbox = Sandbox::new(
-            connection,
-            shared_args,
-            &execution_args,
-            block_args,
-        )
-        .await?;
+        let sandbox = Sandbox::new(connection, shared_args, &execution_args, block_args).await?;
         let (vm, _) = sandbox.into_vm(&tx, adjust_pubdata_price);
         match vm.as_ref() {
             VmInstance::Vm1_5_0(vm) => {
