@@ -3,7 +3,7 @@
 use std::{sync::Arc, time::Instant};
 
 use anyhow::Context as _;
-use multivm::vm_latest::VmExecutionLogs;
+use zksync_multivm::vm_latest::VmExecutionLogs;
 use tokio::sync::RwLock;
 use zksync_config::configs::{api::Web3JsonRpcConfig, chain::StateKeeperConfig};
 use zksync_contracts::BaseSystemContracts;
