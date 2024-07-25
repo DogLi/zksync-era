@@ -1,6 +1,9 @@
 //! Implementation of "executing" methods, e.g. `eth_call`.
 
+use crate::tx_sender::SubmitTxError;
 use anyhow::Context as _;
+use multivm::interface::VmInterface;
+use multivm::vm_latest::VmExecutionLogs;
 use tracing::{span, Level};
 use zksync_dal::{ConnectionPool, Core};
 use zksync_multivm::{
@@ -95,6 +98,35 @@ pub(crate) enum TransactionExecutor {
 }
 
 impl TransactionExecutor {
+    #[allow(clippy::too_many_arguments)]
+    #[tracing::instrument(skip_all)]
+    pub async fn execute_log_in_sandbox(
+        &self,
+        vm_permit: VmPermit,
+        shared_args: TxSharedArgs,
+        adjust_pubdata_price: bool,
+        execution_args: TxExecutionArgs,
+        connection_pool: ConnectionPool<Core>,
+        tx: Transaction,
+        block_args: BlockArgs,
+    ) -> anyhow::Result<VmExecutionLogs> {
+        let logs = tokio::task::spawn_blocking(move || {
+            let result = apply::apply_log_in_sandbox(
+                vm_permit,
+                shared_args,
+                adjust_pubdata_price,
+                &execution_args,
+                &connection_pool,
+                tx,
+                block_args,
+            );
+            result
+        })
+        .await
+        .context("transaction execution panicked")??;
+        Ok(logs)
+    }
+
     /// This method assumes that (block with number `resolved_block_number` is present in DB)
     /// or (`block_id` is `pending` and block with number `resolved_block_number - 1` is present in DB)
     #[allow(clippy::too_many_arguments)]

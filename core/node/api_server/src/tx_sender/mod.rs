@@ -3,13 +3,13 @@
 use std::{sync::Arc, time::Instant};
 
 use anyhow::Context as _;
-use zksync_multivm::vm_latest::VmExecutionLogs;
 use tokio::sync::RwLock;
 use zksync_config::configs::{api::Web3JsonRpcConfig, chain::StateKeeperConfig};
 use zksync_contracts::BaseSystemContracts;
 use zksync_dal::{
     transactions_dal::L2TxSubmissionResult, Connection, ConnectionPool, Core, CoreDal,
 };
+use zksync_multivm::vm_latest::VmExecutionLogs;
 use zksync_multivm::{
     interface::VmExecutionResultAndLogs,
     utils::{
@@ -364,17 +364,23 @@ impl TxSender {
         let adjust_pubdata_price = true;
         let execution_args = TxExecutionArgs::for_validation(&tx);
         let tx = tx.clone().into();
-        let sandbox = Sandbox::new(connection, shared_args, &execution_args, block_args).await?;
-        let (vm, _) = sandbox.into_vm(&tx, adjust_pubdata_price);
-        match vm.as_ref() {
-            VmInstance::Vm1_5_0(vm) => {
-                let logs = vm.get_logs();
-                Ok(logs)
-            }
-            _ => Err(SubmitTxError::Internal(anyhow::anyhow!(
-                "Invalid vm version"
-            ))),
-        }
+        let vm_permit = self.0.vm_concurrency_limiter.acquire().await;
+        let vm_permit = vm_permit.ok_or(SubmitTxError::ServerShuttingDown)?;
+        let connection_pool = self.0.replica_connection_pool.clone();
+        let log = self
+            .0
+            .executor
+            .execute_log_in_sandbox(
+                vm_permit,
+                shared_args,
+                adjust_pubdata_price,
+                execution_args,
+                connection_pool,
+                tx,
+                block_args,
+            )
+            .await?;
+        Ok(log)
     }
 
     #[tracing::instrument(level = "debug", skip_all, fields(tx.hash = ?tx.hash()))]

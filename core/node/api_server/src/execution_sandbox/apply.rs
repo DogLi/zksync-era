@@ -8,7 +8,10 @@
 
 use std::time::{Duration, Instant};
 
+use crate::tx_sender::SubmitTxError;
 use anyhow::Context as _;
+use multivm::vm_latest::VmExecutionLogs;
+use multivm::VmInstance;
 use tokio::runtime::Handle;
 use zksync_dal::{Connection, ConnectionPool, Core, CoreDal, DalError};
 use zksync_multivm::{
@@ -343,6 +346,50 @@ pub(super) fn apply_vm_in_sandbox<T>(
         storage_view.as_ref().borrow_mut().metrics(),
     );
     Ok(result)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn apply_log_in_sandbox<T>(
+    vm_permit: VmPermit,
+    shared_args: TxSharedArgs,
+    // If `true`, then the batch's L1/pubdata gas price will be adjusted so that the transaction's gas per pubdata limit is <=
+    // to the one in the block. This is often helpful in case we want the transaction validation to work regardless of the
+    // current L1 prices for gas or pubdata.
+    adjust_pubdata_price: bool,
+    execution_args: &TxExecutionArgs,
+    connection_pool: &ConnectionPool<Core>,
+    tx: Transaction,
+    block_args: BlockArgs,
+) -> anyhow::Result<VmExecutionLogs, SubmitTxError> {
+    let stage_started_at = Instant::now();
+    let rt_handle = vm_permit.rt_handle();
+    let connection = rt_handle
+        .block_on(connection_pool.connection_tagged("api"))
+        .context("failed acquiring DB connection")?;
+    let connection_acquire_time = stage_started_at.elapsed();
+    // We don't want to emit too many logs.
+    if connection_acquire_time > Duration::from_millis(10) {
+        tracing::debug!("Obtained connection (took {connection_acquire_time:?})");
+    }
+
+    let sandbox = rt_handle.block_on(Sandbox::new(
+        connection,
+        shared_args,
+        execution_args,
+        block_args,
+    ))?;
+    let (mut vm, storage_view) = sandbox.into_vm(&tx, adjust_pubdata_price);
+
+    let result = match vm.as_ref() {
+        VmInstance::Vm1_5_0(vm) => {
+            let logs = vm.get_logs();
+            Ok(logs)
+        }
+        _ => Err(SubmitTxError::Internal(anyhow::anyhow!(
+            "Invalid vm version"
+        ))),
+    };
+    result
 }
 
 #[derive(Debug, Clone, Copy)]
