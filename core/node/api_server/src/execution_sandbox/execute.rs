@@ -3,7 +3,6 @@
 use anyhow::Context as _;
 use tracing::{span, Level};
 use zksync_dal::{ConnectionPool, Core};
-use zksync_multivm::interface::VmInterface;
 use zksync_multivm::vm_latest::VmExecutionLogs;
 use zksync_multivm::{
     interface::{TxExecutionMode, VmExecutionResultAndLogs, VmInterface},

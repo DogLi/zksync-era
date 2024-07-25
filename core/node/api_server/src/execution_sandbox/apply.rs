@@ -377,7 +377,7 @@ pub(super) fn apply_log_in_sandbox(
         execution_args,
         block_args,
     ))?;
-    let (vm, _storage_view) = sandbox.into_vm(&tx, adjust_pubdata_price);
+    let (mut vm, _storage_view) = sandbox.into_vm(&tx, adjust_pubdata_price);
 
     let result = match vm.as_ref() {
         VmInstance::Vm1_5_0(vm) => {
