@@ -381,7 +381,7 @@ pub(super) fn apply_log_in_sandbox(
 
     let result = match vm.as_ref() {
         VmInstance::Vm1_5_0(vm) => {
-            let logs = vm.get_logs();
+            let logs = vm.get_logs(true, None);
             Ok(logs)
         }
         _ => Err(SubmitTxError::Internal(anyhow::anyhow!(

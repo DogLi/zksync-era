@@ -30,6 +30,11 @@ pub struct VmExecutionLogs {
 }
 
 impl VmExecutionLogs {
+    pub fn info(&self) -> String {
+        format!("storage_logs: {:?}, events: {}, user_l2_to_l1_logs: {:?}, system_l2_to_l1_logs: {:?}, total_log_queries_count: {}",
+                self.storage_logs.len(), self.events.len(), self.user_l2_to_l1_logs.len(), self.system_l2_to_l1_logs.len(), self.total_log_queries_count
+        )
+    }
     pub fn total_l2_to_l1_logs_count(&self) -> usize {
         self.user_l2_to_l1_logs.len() + self.system_l2_to_l1_logs.len()
     }

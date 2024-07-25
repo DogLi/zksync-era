@@ -42,9 +42,37 @@ impl<S: WriteStorage, H: HistoryMode> Vm<S, H> {
     }
 
     /// Get the VM execution Logs
-    pub fn get_logs(&self) -> VmExecutionLogs {
+    pub fn get_logs(
+        &mut self,
+        with_refund_tracer: bool,
+        custom_pubdata_tracer: Option<PubdataTracer<S>>,
+    ) -> VmExecutionLogs {
+        let execution_mode = VmExecutionMode::OneTx;
+        let dispatcher = TracerDispatcher::default();
+        let refund_tracers = with_refund_tracer
+            .then_some(RefundsTracer::new(self.batch_env.clone(), self.subversion));
+        let mut tx_tracer: DefaultExecutionTracer<S, H::Vm1_5_0> = DefaultExecutionTracer::new(
+            self.system_env.default_validation_computational_gas_limit,
+            execution_mode,
+            dispatcher,
+            self.storage.clone(),
+            refund_tracers,
+            custom_pubdata_tracer.or_else(|| {
+                Some(PubdataTracer::new(
+                    self.batch_env.clone(),
+                    execution_mode,
+                    self.subversion,
+                ))
+            }),
+            self.subversion,
+        );
+        // execute so that the local_state.timestamp can increase
+        self.execute_with_default_tracer(&mut tx_tracer);
         let timestamp_initial = Timestamp(self.state.local_state.timestamp);
+        tracing::info!("timestamp initial: {:?}", timestamp_initial);
         let logs = self.collect_execution_logs_after_timestamp(timestamp_initial);
+        tracing::info!("log 1: {:?}", logs.info());
+
         logs
     }
 
@@ -83,7 +111,9 @@ impl<S: WriteStorage, H: HistoryMode> Vm<S, H> {
 
         let gas_remaining_after = self.gas_remaining();
 
+        tracing::info!("timestamp initial 2: {:?}", timestamp_initial);
         let logs = self.collect_execution_logs_after_timestamp(timestamp_initial);
+        tracing::info!("logs 2: {:?}", logs.info());
 
         let (refunds, pubdata_published) = tx_tracer
             .refund_tracer
