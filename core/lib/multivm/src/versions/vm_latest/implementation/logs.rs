@@ -18,7 +18,6 @@ impl<S: WriteStorage, H: HistoryMode> Vm<S, H> {
         &self,
         from_timestamp: Timestamp,
     ) -> VmExecutionLogs {
-        tracing::info!("ssssssss 1");
         let storage_logs: Vec<_> = self
             .state
             .storage
@@ -26,25 +25,21 @@ impl<S: WriteStorage, H: HistoryMode> Vm<S, H> {
             .iter()
             .map(|log| **log)
             .collect();
-        tracing::info!("ssssssss 2");
         let storage_logs_count = storage_logs.len();
 
         let (events, system_l2_to_l1_logs) =
             self.collect_events_and_l1_system_logs_after_timestamp(from_timestamp);
 
-        tracing::info!("ssssssss 3");
         let log_queries = self
             .state
             .event_sink
             .log_queries_after_timestamp(from_timestamp);
 
-        tracing::info!("ssssssss 4");
         let precompile_calls_count = precompile_calls_count_after_timestamp(
             self.state.precompiles_processor.timestamp_history.inner(),
             from_timestamp,
         );
 
-        tracing::info!("ssssssss 5");
         let user_logs = extract_l2tol1logs_from_l1_messenger(&events);
 
         let total_log_queries_count =

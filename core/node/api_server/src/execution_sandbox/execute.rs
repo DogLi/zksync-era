@@ -1,11 +1,10 @@
 //! Implementation of "executing" methods, e.g. `eth_call`.
 
-use crate::tx_sender::SubmitTxError;
 use anyhow::Context as _;
-use multivm::interface::VmInterface;
-use multivm::vm_latest::VmExecutionLogs;
 use tracing::{span, Level};
 use zksync_dal::{ConnectionPool, Core};
+use zksync_multivm::interface::VmInterface;
+use zksync_multivm::vm_latest::VmExecutionLogs;
 use zksync_multivm::{
     interface::{TxExecutionMode, VmExecutionResultAndLogs, VmInterface},
     tracers::StorageInvocations,

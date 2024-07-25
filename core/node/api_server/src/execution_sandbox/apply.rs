@@ -10,10 +10,9 @@ use std::time::{Duration, Instant};
 
 use crate::tx_sender::SubmitTxError;
 use anyhow::Context as _;
-use multivm::vm_latest::VmExecutionLogs;
-use multivm::VmInstance;
 use tokio::runtime::Handle;
 use zksync_dal::{Connection, ConnectionPool, Core, CoreDal, DalError};
+use zksync_multivm::vm_latest::VmExecutionLogs;
 use zksync_multivm::{
     interface::{L1BatchEnv, L2BlockEnv, SystemEnv, VmInterface},
     utils::adjust_pubdata_price_for_tx,
@@ -349,7 +348,7 @@ pub(super) fn apply_vm_in_sandbox<T>(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn apply_log_in_sandbox<T>(
+pub(super) fn apply_log_in_sandbox(
     vm_permit: VmPermit,
     shared_args: TxSharedArgs,
     // If `true`, then the batch's L1/pubdata gas price will be adjusted so that the transaction's gas per pubdata limit is <=
@@ -378,7 +377,7 @@ pub(super) fn apply_log_in_sandbox<T>(
         execution_args,
         block_args,
     ))?;
-    let (mut vm, storage_view) = sandbox.into_vm(&tx, adjust_pubdata_price);
+    let (vm, _storage_view) = sandbox.into_vm(&tx, adjust_pubdata_price);
 
     let result = match vm.as_ref() {
         VmInstance::Vm1_5_0(vm) => {

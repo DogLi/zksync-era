@@ -17,7 +17,6 @@ use zksync_multivm::{
         get_eth_call_gas_limit, get_max_batch_gas_limit,
     },
     vm_latest::constants::BATCH_COMPUTATIONAL_GAS_LIMIT,
-    VmInstance,
 };
 use zksync_node_fee_model::{ApiFeeInputProvider, BatchFeeModelInputProvider};
 use zksync_state::PostgresStorageCaches;
@@ -40,7 +39,6 @@ use zksync_utils::h256_to_u256;
 
 pub(super) use self::result::SubmitTxError;
 use self::{master_pool_sink::MasterPoolSink, tx_sink::TxSink};
-use crate::execution_sandbox::apply::Sandbox;
 use crate::{
     execution_sandbox::{
         BlockArgs, SubmitTxStage, TransactionExecutor, TxExecutionArgs, TxSharedArgs,

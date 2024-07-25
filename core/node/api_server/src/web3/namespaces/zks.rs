@@ -583,11 +583,8 @@ impl ZksNamespace {
         &self,
         tx_bytes: Bytes,
     ) -> Result<(H256, VmExecutionLogs), Web3Error> {
-        tracing::info!("ssssssss 1");
         let (mut tx, hash) = self.state.parse_transaction_bytes(&tx_bytes.0)?;
-        tracing::info!("ssssssss 2");
         tx.set_input(tx_bytes.0, hash);
-        tracing::info!("ssssssss 3");
         let exec_logs: Result<_, Web3Error> = self
             .state
             .tx_sender
@@ -597,7 +594,6 @@ impl ZksNamespace {
                 tracing::debug!("execute tx in sandbox error: {err}");
                 err.into()
             });
-        tracing::info!("ssssssss 4");
         Ok((hash, exec_logs?))
     }
 }
