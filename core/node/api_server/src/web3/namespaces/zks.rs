@@ -594,7 +594,6 @@ impl ZksNamespace {
                 tracing::debug!("execute tx in sandbox error: {err}");
                 err.into()
             });
-        tracing::info!("exec_logs: {exec_logs:?}");
         Ok((hash, exec_logs?))
     }
 }

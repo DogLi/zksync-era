@@ -8,7 +8,6 @@
 
 use std::time::{Duration, Instant};
 
-use crate::tx_sender::SubmitTxError;
 use anyhow::Context as _;
 use tokio::runtime::Handle;
 use zksync_dal::{Connection, ConnectionPool, Core, CoreDal, DalError};
@@ -361,48 +360,10 @@ pub(super) fn apply_log_in_sandbox<T>(
         ProtocolVersionId,
     ) -> T,
 ) -> anyhow::Result<T> {
-    // ) -> anyhow::Result<VmExecutionLogs, SubmitTxError> {
-    // let stage_started_at = Instant::now();
-    // let rt_handle = vm_permit.rt_handle();
-    // let connection = rt_handle
-    //     .block_on(connection_pool.connection_tagged("api"))
-    //     .context("failed acquiring DB connection")?;
-    // let connection_acquire_time = stage_started_at.elapsed();
-    // // We don't want to emit too many logs.
-    // if connection_acquire_time > Duration::from_millis(10) {
-    //     tracing::debug!("Obtained connection (took {connection_acquire_time:?})");
-    // }
-    //
-    // let sandbox = rt_handle.block_on(Sandbox::new(
-    //     connection,
-    //     shared_args,
-    //     execution_args,
-    //     block_args,
-    // ))?;
-    // let (mut vm, _storage_view) = sandbox.into_vm(&tx, adjust_pubdata_price);
-    //
-    // let result = match vm.as_mut() {
-    //     VmInstance::Vm1_5_0(vm) => {
-    //         let logs = vm.get_logs(true, None);
-    //         Ok(logs)
-    //     }
-    //     _ => Err(SubmitTxError::Internal(anyhow::anyhow!(
-    //         "Invalid vm version"
-    //     ))),
-    // };
-    // result
-    let stage_started_at = Instant::now();
-
     let rt_handle = vm_permit.rt_handle();
     let connection = rt_handle
         .block_on(connection_pool.connection_tagged("api"))
         .context("failed acquiring DB connection")?;
-    let connection_acquire_time = stage_started_at.elapsed();
-    // We don't want to emit too many logs.
-    if connection_acquire_time > Duration::from_millis(10) {
-        tracing::debug!("Obtained connection (took {connection_acquire_time:?})");
-    }
-
     let sandbox = rt_handle.block_on(Sandbox::new(
         connection,
         shared_args,
@@ -411,10 +372,6 @@ pub(super) fn apply_log_in_sandbox<T>(
     ))?;
     let protocol_version = sandbox.system_env.version;
     let (mut vm, storage_view) = sandbox.into_vm(&tx, adjust_pubdata_price);
-
-    SANDBOX_METRICS.sandbox[&SandboxStage::Initialization].observe(stage_started_at.elapsed());
-
-    let execution_latency = SANDBOX_METRICS.sandbox[&SandboxStage::Execution].start();
     let result = apply(&mut vm, tx, protocol_version);
     Ok(result)
 }

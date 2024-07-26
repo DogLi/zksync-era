@@ -109,8 +109,8 @@ impl TransactionExecutor {
         block_args: BlockArgs,
         custom_tracers: Vec<ApiTracer>,
     ) -> anyhow::Result<VmExecutionLogs> {
-        let result = tokio::task::spawn_blocking(move || {
-            let (_, result) = apply::apply_log_in_sandbox(
+        let (_, result) = tokio::task::spawn_blocking(move || {
+            let result = apply::apply_log_in_sandbox(
                 vm_permit,
                 shared_args,
                 adjust_pubdata_price,

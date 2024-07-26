@@ -380,7 +380,7 @@ impl TxSender {
         let execution_output = self
             .0
             .executor
-            .execute_tx_in_sandbox(
+            .execute_log_in_sandbox(
                 vm_permit.clone(),
                 shared_args.clone(),
                 true,
@@ -391,7 +391,7 @@ impl TxSender {
                 vec![],
             )
             .await?;
-        Ok(execution_output.vm.logs)
+        Ok(execution_output)
     }
 
     #[tracing::instrument(level = "debug", skip_all, fields(tx.hash = ?tx.hash()))]
