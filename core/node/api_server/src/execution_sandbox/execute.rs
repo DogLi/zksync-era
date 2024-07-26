@@ -109,7 +109,7 @@ impl TransactionExecutor {
         block_args: BlockArgs,
         custom_tracers: Vec<ApiTracer>,
     ) -> anyhow::Result<VmExecutionLogs> {
-        let logs = tokio::task::spawn_blocking(move || {
+        let result = tokio::task::spawn_blocking(move || {
             let storage_invocation_tracer =
                 StorageInvocations::new(execution_args.missed_storage_invocation_limit);
             let custom_tracers: Vec<_> = custom_tracers
@@ -117,7 +117,7 @@ impl TransactionExecutor {
                 .map(|tracer| tracer.into_boxed())
                 .chain(vec![storage_invocation_tracer.into_tracer_pointer()])
                 .collect();
-            let result: TransactionExecutionOutput = apply::apply_vm_in_sandbox(
+            let result: Result<TransactionExecutionOutput, _> = apply::apply_vm_in_sandbox(
                 vm_permit,
                 shared_args,
                 adjust_pubdata_price,
@@ -139,12 +139,12 @@ impl TransactionExecutor {
                         true,
                     )
                 },
-            )?;
-            result.vm.logs
+            );
+            result
         })
         .await
         .context("transaction execution panicked")??;
-        Ok(logs)
+        Ok(result.vm.logs)
     }
 
     /// This method assumes that (block with number `resolved_block_number` is present in DB)
