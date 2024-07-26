@@ -12,7 +12,6 @@ use crate::tx_sender::SubmitTxError;
 use anyhow::Context as _;
 use tokio::runtime::Handle;
 use zksync_dal::{Connection, ConnectionPool, Core, CoreDal, DalError};
-use zksync_multivm::vm_latest::VmExecutionLogs;
 use zksync_multivm::{
     interface::{L1BatchEnv, L2BlockEnv, SystemEnv, VmInterface},
     utils::adjust_pubdata_price_for_tx,
@@ -393,6 +392,7 @@ pub(super) fn apply_log_in_sandbox<T>(
     // };
     // result
     let stage_started_at = Instant::now();
+
     let rt_handle = vm_permit.rt_handle();
     let connection = rt_handle
         .block_on(connection_pool.connection_tagged("api"))
@@ -411,6 +411,10 @@ pub(super) fn apply_log_in_sandbox<T>(
     ))?;
     let protocol_version = sandbox.system_env.version;
     let (mut vm, storage_view) = sandbox.into_vm(&tx, adjust_pubdata_price);
+
+    SANDBOX_METRICS.sandbox[&SandboxStage::Initialization].observe(stage_started_at.elapsed());
+
+    let execution_latency = SANDBOX_METRICS.sandbox[&SandboxStage::Execution].start();
     let result = apply(&mut vm, tx, protocol_version);
     Ok(result)
 }

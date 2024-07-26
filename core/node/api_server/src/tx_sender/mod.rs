@@ -362,10 +362,25 @@ impl TxSender {
         let tx = tx.clone().into();
         let vm_permit = self.0.vm_concurrency_limiter.acquire().await;
         let vm_permit = vm_permit.ok_or(SubmitTxError::ServerShuttingDown)?;
+        // let logs = self
+        //     .0
+        //     .executor
+        //     .execute_log_in_sandbox(
+        //         vm_permit.clone(),
+        //         shared_args.clone(),
+        //         true,
+        //         TxExecutionArgs::for_validation(&tx),
+        //         self.0.replica_connection_pool.clone(),
+        //         tx.clone().into(),
+        //         block_args,
+        //         vec![],
+        //     )
+        //     .await?;
+        // Ok(logs)
         let execution_output = self
             .0
             .executor
-            .execute_log_in_sandbox(
+            .execute_tx_in_sandbox(
                 vm_permit.clone(),
                 shared_args.clone(),
                 true,
@@ -376,8 +391,7 @@ impl TxSender {
                 vec![],
             )
             .await?;
-        let logs = execution_output.vm.logs;
-        Ok(logs)
+        Ok(execution_output.vm.logs)
     }
 
     #[tracing::instrument(level = "debug", skip_all, fields(tx.hash = ?tx.hash()))]
