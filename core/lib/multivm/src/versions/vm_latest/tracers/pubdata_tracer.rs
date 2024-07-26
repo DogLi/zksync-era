@@ -37,7 +37,7 @@ use crate::{
 
 /// Tracer responsible for collecting information about refunds.
 #[derive(Debug, Clone)]
-pub(crate) struct PubdataTracer<S> {
+pub struct PubdataTracer<S> {
     l1_batch_env: L1BatchEnv,
     pubdata_info_requested: bool,
     execution_mode: VmExecutionMode,

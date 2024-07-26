@@ -359,26 +359,25 @@ impl TxSender {
         let shared_args = self.shared_args().await?;
         let mut connection = self.acquire_replica_connection().await?;
         let block_args = BlockArgs::pending(&mut connection).await?;
-        let adjust_pubdata_price = true;
-        let execution_args = TxExecutionArgs::for_validation(&tx);
         let tx = tx.clone().into();
         let vm_permit = self.0.vm_concurrency_limiter.acquire().await;
         let vm_permit = vm_permit.ok_or(SubmitTxError::ServerShuttingDown)?;
-        let connection_pool = self.0.replica_connection_pool.clone();
-        let log = self
+        let execution_output = self
             .0
             .executor
             .execute_log_in_sandbox(
-                vm_permit,
-                shared_args,
-                adjust_pubdata_price,
-                execution_args,
-                connection_pool,
-                tx,
+                vm_permit.clone(),
+                shared_args.clone(),
+                true,
+                TxExecutionArgs::for_validation(&tx),
+                self.0.replica_connection_pool.clone(),
+                tx.clone().into(),
                 block_args,
+                vec![],
             )
             .await?;
-        Ok(log)
+        let logs = execution_output.vm.logs;
+        Ok(logs)
     }
 
     #[tracing::instrument(level = "debug", skip_all, fields(tx.hash = ?tx.hash()))]

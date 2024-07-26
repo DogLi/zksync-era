@@ -44,11 +44,11 @@ impl<S: WriteStorage, H: HistoryMode> Vm<S, H> {
     /// Get the VM execution Logs
     pub fn get_logs(
         &mut self,
+        dispatcher: TracerDispatcher<S, H::Vm1_5_0>,
         with_refund_tracer: bool,
         custom_pubdata_tracer: Option<PubdataTracer<S>>,
     ) -> VmExecutionLogs {
         let execution_mode = VmExecutionMode::OneTx;
-        let dispatcher = TracerDispatcher::default();
         let refund_tracers = with_refund_tracer
             .then_some(RefundsTracer::new(self.batch_env.clone(), self.subversion));
         let mut tx_tracer: DefaultExecutionTracer<S, H::Vm1_5_0> = DefaultExecutionTracer::new(

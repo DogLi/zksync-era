@@ -107,9 +107,17 @@ impl TransactionExecutor {
         connection_pool: ConnectionPool<Core>,
         tx: Transaction,
         block_args: BlockArgs,
+        custom_tracers: Vec<ApiTracer>,
     ) -> anyhow::Result<VmExecutionLogs> {
         let logs = tokio::task::spawn_blocking(move || {
-            let result = apply::apply_log_in_sandbox(
+            let storage_invocation_tracer =
+                StorageInvocations::new(execution_args.missed_storage_invocation_limit);
+            let custom_tracers: Vec<_> = custom_tracers
+                .into_iter()
+                .map(|tracer| tracer.into_boxed())
+                .chain(vec![storage_invocation_tracer.into_tracer_pointer()])
+                .collect();
+            let result: TransactionExecutionOutput = apply::apply_vm_in_sandbox(
                 vm_permit,
                 shared_args,
                 adjust_pubdata_price,
@@ -117,8 +125,22 @@ impl TransactionExecutor {
                 &connection_pool,
                 tx,
                 block_args,
-            );
-            result
+                |vm, tx, _| {
+                    let storage_invocation_tracer =
+                        StorageInvocations::new(execution_args.missed_storage_invocation_limit);
+                    let custom_tracers: Vec<_> = custom_tracers
+                        .into_iter()
+                        .map(|tracer| tracer.into_boxed())
+                        .chain(vec![storage_invocation_tracer.into_tracer_pointer()])
+                        .collect();
+                    vm.inspect_transaction_with_bytecode_compression(
+                        custom_tracers.into(),
+                        tx,
+                        true,
+                    )
+                },
+            )?;
+            result.vm.logs
         })
         .await
         .context("transaction execution panicked")??;
