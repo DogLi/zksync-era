@@ -235,4 +235,25 @@ impl ZksNamespaceServer for ZksNamespace {
             })
             .map_err(|err| self.current_method().map_err(err))
     }
+    async fn get_call_logs(
+        &self,
+        data: Bytes,
+        from: Address,
+        to: Address,
+    ) -> RpcResult<TransactionPreExecuteInfo> {
+        self.get_call_logs_impl(data, from, to)
+            .await
+            .map(|(hash, r)| TransactionPreExecuteInfo {
+                events: r
+                    .events
+                    .iter()
+                    .map(|x| {
+                        let mut l = Log::from(x);
+                        l.transaction_hash = Some(hash);
+                        l
+                    })
+                    .collect_vec(),
+            })
+            .map_err(|err| self.current_method().map_err(err))
+    }
 }

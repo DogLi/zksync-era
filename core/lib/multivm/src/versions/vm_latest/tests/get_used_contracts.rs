@@ -15,7 +15,7 @@ use zksync_test_account::Account;
 use zksync_types::fee::Fee;
 use zksync_types::l2::L2Tx;
 use zksync_types::transaction_request::CallRequest;
-use zksync_types::{Execute, Nonce, U256};
+use zksync_types::{EIP712TypedStructure, Execute, Nonce, U256};
 use zksync_utils::{bytecode::hash_bytecode, h256_to_u256};
 
 use crate::{
@@ -158,24 +158,4 @@ fn known_bytecodes_without_aa_code<S: WriteStorage, H: HistoryMode>(
         .unwrap();
 
     known_bytecodes_without_aa_code
-}
-
-#[test]
-fn test_get_raw_tx() {
-    let from = Account::random();
-    let to = Account::random();
-    let data = "70a0823100000000000000000000000093079ad4c44b8efbc1d9ba14074ca85af39d4fe7";
-    let data = hex::decode(data).unwrap();
-    let req = CallRequest {
-        from: Some(from.address),
-        to: Some(to.address),
-        data: Some(data.into()),
-        gas: Some(U256::one()),
-        ..Default::default()
-    };
-
-    let mut tx = L2Tx::from_request(req.into(), MAX_ENCODED_TX_SIZE).unwrap();
-
-    let raw_tx = tx.raw_bytes.unwrap();
-    println!("0x{}", hex::encode(raw_tx));
 }

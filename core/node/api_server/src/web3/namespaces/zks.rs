@@ -6,7 +6,8 @@ use zksync_metadata_calculator::api_server::TreeApiError;
 use zksync_mini_merkle_tree::MiniMerkleTree;
 use zksync_multivm::interface::VmExecutionResultAndLogs;
 use zksync_multivm::vm_latest::VmExecutionLogs;
-use zksync_system_constants::DEFAULT_L2_TX_GAS_PER_PUBDATA_BYTE;
+use zksync_system_constants::{DEFAULT_L2_TX_GAS_PER_PUBDATA_BYTE, MAX_ENCODED_TX_SIZE};
+use zksync_types::api::{BlockId, BlockNumber, TransactionPreExecuteInfo};
 use zksync_types::{
     api::{
         BlockDetails, BridgeAddresses, GetLogsFilter, L1BatchDetails, L2ToL1LogProof, Proof,
@@ -25,6 +26,7 @@ use zksync_types::{
     L1_MESSENGER_ADDRESS, L2_BASE_TOKEN_ADDRESS, REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_BYTE, U256, U64,
 };
 use zksync_utils::{address_to_h256, h256_to_u256};
+use zksync_web3_decl::jsonrpsee::core::RpcResult;
 use zksync_web3_decl::{
     error::Web3Error,
     types::{Address, Token, H256},
@@ -594,6 +596,48 @@ impl ZksNamespace {
                 tracing::debug!("execute tx in sandbox error: {err}");
                 err.into()
             });
+        Ok((hash, exec_logs?))
+    }
+
+    #[tracing::instrument(skip(self, tx_bytes))]
+    pub async fn get_call_logs_impl(
+        &self,
+        data: Bytes,
+        from: Address,
+        to: Address,
+    ) -> Result<(H256, VmExecutionLogs), Web3Error> {
+        let block_id = BlockId::Number(BlockNumber::Pending);
+        let mut connection = self.state.acquire_connection().await?;
+        let block_args = self
+            .state
+            .resolve_block_args(&mut connection, block_id)
+            .await?;
+        let gas = self
+            .state
+            .tx_sender
+            .get_default_eth_call_gas(block_args)
+            .await
+            .map_err(Web3Error::InternalError)?
+            .into();
+
+        let mut req = CallRequest {
+            from: Some(from),
+            to: Some(to),
+            data: Some(data),
+            gas: Some(gas),
+            ..Default::default()
+        };
+        let tx = L2Tx::from_request(req.into(), self.state.api_config.max_tx_size)?;
+        let exec_logs: Result<_, Web3Error> = self
+            .state
+            .tx_sender
+            .execute_tx_in_sandbox(tx)
+            .await
+            .map_err(|err| {
+                tracing::debug!("execute tx in sandbox error: {err}");
+                err.into()
+            });
+        let hash = tx.hash();
         Ok((hash, exec_logs?))
     }
 }

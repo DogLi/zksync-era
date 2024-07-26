@@ -137,4 +137,12 @@ pub trait ZksNamespace {
         &self,
         tx_bytes: Bytes,
     ) -> RpcResult<TransactionPreExecuteInfo>;
+
+    #[method(name = "getCallLogs")]
+    async fn get_call_logs(
+        &self,
+        data: Bytes,
+        from: Address,
+        to: Address,
+    ) -> RpcResult<TransactionPreExecuteInfo>;
 }
