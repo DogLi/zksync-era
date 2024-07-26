@@ -232,12 +232,6 @@ impl ZksNamespaceServer for ZksNamespace {
                         l
                     })
                     .collect_vec(),
-                storage_logs: result
-                    .storage_logs
-                    .iter()
-                    .filter(|x| x.log.is_write())
-                    .map(ApiStorageLog::from)
-                    .collect_vec(),
             })
             .map_err(|err| self.current_method().map_err(err))
     }

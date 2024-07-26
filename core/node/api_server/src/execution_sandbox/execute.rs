@@ -137,7 +137,7 @@ impl TransactionExecutor {
         })
         .await
         .context("transaction execution panicked")??;
-        Ok(result.vm.logs)
+        Ok(result.logs)
     }
 
     /// This method assumes that (block with number `resolved_block_number` is present in DB)

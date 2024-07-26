@@ -371,7 +371,7 @@ pub(super) fn apply_log_in_sandbox<T>(
         block_args,
     ))?;
     let protocol_version = sandbox.system_env.version;
-    let (mut vm, storage_view) = sandbox.into_vm(&tx, adjust_pubdata_price);
+    let (mut vm, _storage_view) = sandbox.into_vm(&tx, adjust_pubdata_price);
     let result = apply(&mut vm, tx, protocol_version);
     Ok(result)
 }

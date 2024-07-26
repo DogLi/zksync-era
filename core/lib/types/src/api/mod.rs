@@ -818,7 +818,6 @@ pub struct TransactionDetailedResult {
 #[serde(rename_all = "camelCase")]
 pub struct TransactionPreExecuteInfo {
     pub events: Vec<Log>,
-    pub storage_logs: Vec<ApiStorageLog>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
