@@ -10,12 +10,9 @@ use zk_evm_1_5_0::{
     zkevm_opcode_defs::{VersionedHashHeader, VersionedHashNormalizedPreimage},
 };
 use zksync_state::WriteStorage;
-use zksync_system_constants::{CONTRACT_DEPLOYER_ADDRESS, MAX_ENCODED_TX_SIZE};
+use zksync_system_constants::CONTRACT_DEPLOYER_ADDRESS;
 use zksync_test_account::Account;
-use zksync_types::fee::Fee;
-use zksync_types::l2::L2Tx;
-use zksync_types::transaction_request::CallRequest;
-use zksync_types::{EIP712TypedStructure, Execute, Nonce, U256};
+use zksync_types::{Execute, U256};
 use zksync_utils::{bytecode::hash_bytecode, h256_to_u256};
 
 use crate::{

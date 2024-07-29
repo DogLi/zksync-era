@@ -49,9 +49,12 @@ impl DebugNamespaceServer for DebugNamespace {
         block: Option<BlockId>,
         options: Option<TracerConfig>,
     ) -> RpcResult<DebugCall> {
-        self.debug_trace_call_impl(request, block, options)
+        let (debug_call, logs) = self
+            .debug_trace_call_impl(request, block, options)
             .await
-            .map_err(|err| self.current_method().map_err(err))
+            .map_err(|err| self.current_method().map_err(err))?;
+        tracing::info!("get logs: {logs:?}");
+        Ok(debug_call)
     }
 
     async fn trace_transaction(

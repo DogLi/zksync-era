@@ -111,7 +111,10 @@ impl<S: WriteStorage, H: HistoryMode> Vm<S, H> {
 
         let gas_remaining_after = self.gas_remaining();
 
-        tracing::info!("timestamp initial 2: {:?}", timestamp_initial);
+        tracing::info!(
+            "timestamp initial 2: {:?}, {stop_reason:?}",
+            timestamp_initial
+        );
         let logs = self.collect_execution_logs_after_timestamp(timestamp_initial);
         tracing::info!("logs 2: {:?}", logs.info());
 
@@ -175,7 +178,8 @@ impl<S: WriteStorage, H: HistoryMode> Vm<S, H> {
     }
 
     fn has_ended(&self) -> bool {
-        match vm_may_have_ended_inner(&self.state) {
+        let r = vm_may_have_ended_inner(&self.state);
+        match r {
             None | Some(VmExecutionResult::MostLikelyDidNotFinish(_, _)) => false,
             Some(
                 VmExecutionResult::Ok(_) | VmExecutionResult::Revert(_) | VmExecutionResult::Panic,

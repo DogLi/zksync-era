@@ -119,6 +119,7 @@ pub(crate) fn vm_may_have_ended_inner<S: WriteStorage, H: HistoryMode>(
         (false, _) => None,
         (true, l) if l == outer_eh_location => {
             // check `r1,r2,r3`
+            tracing::info!("hhhhhhh l: {l}");
             if vm.local_state.flags.overflow_or_less_than_flag {
                 Some(VmExecutionResult::Panic)
             } else {

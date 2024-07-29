@@ -229,9 +229,7 @@ impl TransactionData {
         transaction_request.chain_id = Some(chain_id.as_u64());
 
         // It is assumed that the `TransactionData` always has all the necessary components to recover the hash.
-        transaction_request
-            .get_tx_hash()
-            .expect("Could not recover L2 transaction hash")
+        transaction_request.get_tx_hash().unwrap_or_default()
     }
 
     fn canonical_l1_tx_hash(&self) -> Result<H256, TxHashCalculationError> {

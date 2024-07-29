@@ -6,8 +6,8 @@ use zksync_metadata_calculator::api_server::TreeApiError;
 use zksync_mini_merkle_tree::MiniMerkleTree;
 use zksync_multivm::interface::VmExecutionResultAndLogs;
 use zksync_multivm::vm_latest::VmExecutionLogs;
-use zksync_system_constants::{DEFAULT_L2_TX_GAS_PER_PUBDATA_BYTE, MAX_ENCODED_TX_SIZE};
-use zksync_types::api::{BlockId, BlockNumber, TransactionPreExecuteInfo};
+use zksync_system_constants::DEFAULT_L2_TX_GAS_PER_PUBDATA_BYTE;
+use zksync_types::api::{BlockId, BlockNumber};
 use zksync_types::{
     api::{
         BlockDetails, BridgeAddresses, GetLogsFilter, L1BatchDetails, L2ToL1LogProof, Proof,
@@ -23,10 +23,10 @@ use zksync_types::{
     utils::storage_key_for_standard_token_balance,
     web3::Bytes,
     AccountTreeId, L1BatchNumber, L2BlockNumber, ProtocolVersionId, StorageKey, Transaction,
-    L1_MESSENGER_ADDRESS, L2_BASE_TOKEN_ADDRESS, REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_BYTE, U256, U64,
+    EIP_1559_TX_TYPE, L1_MESSENGER_ADDRESS, L2_BASE_TOKEN_ADDRESS,
+    REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_BYTE, U256, U64,
 };
 use zksync_utils::{address_to_h256, h256_to_u256};
-use zksync_web3_decl::jsonrpsee::core::RpcResult;
 use zksync_web3_decl::{
     error::Web3Error,
     types::{Address, Token, H256},
@@ -596,10 +596,12 @@ impl ZksNamespace {
                 tracing::debug!("execute tx in sandbox error: {err}");
                 err.into()
             });
-        Ok((hash, exec_logs?))
+        let logs = exec_logs?;
+        tracing::info!("xxxxxxxxxxxx {}", logs.info());
+        Ok((hash, logs))
     }
 
-    #[tracing::instrument(skip(self, tx_bytes))]
+    #[tracing::instrument(skip(self, data, from, to))]
     pub async fn get_call_logs_impl(
         &self,
         data: Bytes,
@@ -620,14 +622,18 @@ impl ZksNamespace {
             .map_err(Web3Error::InternalError)?
             .into();
 
-        let mut req = CallRequest {
+        let req = CallRequest {
             from: Some(from),
             to: Some(to),
             data: Some(data),
             gas: Some(gas),
+            transaction_type: Some(EIP_1559_TX_TYPE.into()),
             ..Default::default()
         };
-        let tx = L2Tx::from_request(req.into(), self.state.api_config.max_tx_size)?;
+        let mut tx = L2Tx::from_request(req.into(), self.state.api_config.max_tx_size)?;
+        tx.set_input(H256::random().0.to_vec(), H256::random());
+        tracing::info!("tx: {:?}", serde_json::to_string(&tx).unwrap());
+        let hash = tx.hash();
         let exec_logs: Result<_, Web3Error> = self
             .state
             .tx_sender
@@ -637,7 +643,8 @@ impl ZksNamespace {
                 tracing::debug!("execute tx in sandbox error: {err}");
                 err.into()
             });
-        let hash = tx.hash();
-        Ok((hash, exec_logs?))
+        let logs = exec_logs?;
+        tracing::info!("xxxxxxxxxxxx {}", logs.info());
+        Ok((hash, logs))
     }
 }
