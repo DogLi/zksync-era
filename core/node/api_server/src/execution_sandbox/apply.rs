@@ -362,7 +362,7 @@ pub(super) fn apply_log_in_sandbox<T>(
     tx: Transaction,
     block_args: BlockArgs,
     apply: impl FnOnce(
-        &mut VmInstance<StorageView<PostgresStorage<'_>>, HistoryDisabled>,
+        &mut VmInstance<VmStorageView<'_>, HistoryDisabled>,
         Transaction,
         ProtocolVersionId,
     ) -> T,
