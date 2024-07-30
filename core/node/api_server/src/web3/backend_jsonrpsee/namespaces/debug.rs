@@ -53,7 +53,6 @@ impl DebugNamespaceServer for DebugNamespace {
             .debug_trace_call_impl(request, block, options)
             .await
             .map_err(|err| self.current_method().map_err(err))?;
-        tracing::info!("get logs: {logs:?}");
         Ok(debug_call)
     }
 

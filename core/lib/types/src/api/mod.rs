@@ -619,6 +619,8 @@ pub struct DebugCall {
     pub error: Option<String>,
     pub revert_reason: Option<String>,
     pub calls: Vec<DebugCall>,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub events: Vec<VmEvent>,
 }
 

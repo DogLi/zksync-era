@@ -3,7 +3,6 @@ use std::sync::Arc;
 use anyhow::Context as _;
 use once_cell::sync::OnceCell;
 use zksync_dal::{CoreDal, DalError};
-use zksync_multivm::vm_latest::VmExecutionLogs;
 use zksync_multivm::{
     interface::ExecutionResult, vm_latest::constants::BATCH_COMPUTATIONAL_GAS_LIMIT,
 };
