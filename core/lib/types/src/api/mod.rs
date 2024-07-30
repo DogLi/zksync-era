@@ -259,7 +259,7 @@ pub struct TransactionReceipt {
     #[serde(rename = "logsBloom")]
     pub logs_bloom: H2048,
     /// Transaction type, Some(1) for AccessList transaction, None for Legacy
-    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "type", default, skip_serializing_if = "Vec::is_empty")]
     pub transaction_type: Option<U64>,
     /// Effective gas price
     #[serde(rename = "effectiveGasPrice")]

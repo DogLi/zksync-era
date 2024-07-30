@@ -225,6 +225,14 @@ impl TransactionExecutor {
             tx.common_data.signature = PackedEthSignature::default().serialize_packed().into();
         }
 
+        tracing::info!("\
+            vm_permit: {vm_permit:?},\
+            shared_args: {shared_args:?},\
+            adjust_pubdata_price: false,\
+            execution_args: {execution_args:?},\
+            block_args: {block_args:?},\
+            tracer: {custom_tracers:?}"
+        );
         let output = self
             .execute_tx_in_sandbox(
                 vm_permit,

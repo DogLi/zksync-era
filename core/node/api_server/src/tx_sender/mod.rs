@@ -400,6 +400,15 @@ impl TxSender {
         let block_args = BlockArgs::pending(&mut connection).await?;
         drop(connection);
 
+        let execution_args = TxExecutionArgs::for_validation(&tx);
+        tracing::info!("\
+            vm_permit: {vm_permit:?},\
+            shared_args: {shared_args:?},\
+            adjust_pubdata_price: true,\
+            execution_args: {execution_args:?},\
+            block_args: {block_args:?},\
+            tracer: []"
+        );
         let execution_output = self
             .0
             .executor
@@ -407,13 +416,18 @@ impl TxSender {
                 vm_permit.clone(),
                 shared_args.clone(),
                 true,
-                TxExecutionArgs::for_validation(&tx),
+                execution_args,
                 self.0.replica_connection_pool.clone(),
                 tx.clone().into(),
                 block_args,
                 vec![],
             )
             .await?;
+
+        // TODO: just debug
+        tracing::info!("execution output events: {:?}", execution_output.vm.logs.events);
+        return Err(SubmitTxError::GasLimitIsTooBig);
+
         tracing::info!(
             "Submit tx {tx_hash:?} with execution metrics {:?}",
             execution_output.metrics
