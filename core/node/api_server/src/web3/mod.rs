@@ -104,6 +104,7 @@ pub enum Namespace {
 
 impl Namespace {
     pub const DEFAULT: &'static [Self] = &[
+        Self::Debug,
         Self::Eth,
         Self::Net,
         Self::Web3,
