@@ -597,7 +597,6 @@ impl ZksNamespace {
                 err.into()
             });
         let logs = exec_logs?;
-        tracing::info!("xxxxxxxxxxxx {}", logs.info());
         Ok((hash, logs))
     }
 
