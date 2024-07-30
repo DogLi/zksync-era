@@ -376,6 +376,7 @@ pub(super) fn apply_log_in_sandbox<T>(
         shared_args,
         execution_args,
         block_args,
+        &StateOverride::default(),
     ))?;
     let protocol_version = sandbox.system_env.version;
     let (mut vm, _storage_view) = sandbox.into_vm(&tx, adjust_pubdata_price);
