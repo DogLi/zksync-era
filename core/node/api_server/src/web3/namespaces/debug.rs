@@ -23,6 +23,8 @@ use crate::{
     tx_sender::{ApiContracts, TxSenderConfig},
     web3::{backend_jsonrpsee::MethodTracer, state::RpcState},
 };
+use crate::execution_sandbox::TxExecutionArgs;
+use crate::tx_sender::SubmitTxError;
 
 #[derive(Debug, Clone)]
 pub(crate) struct DebugNamespace {
@@ -168,7 +170,7 @@ impl DebugNamespace {
 
         let call_overrides = request.get_call_overrides()?;
         let tx = L2Tx::from_request(request.into(), MAX_ENCODED_TX_SIZE)?;
-        let s = "0x02f8b282012c0584017d784084017d7840830bb15b9423a1afd896c8c8876af46adc38521f4432658d1e80b844a9059cbb00000000000000000000000077422c40aa1864f3f873ece9409aa1fce86c34cc00000000000000000000000000000000000000000000000006f05b59d3b20000c080a0ef60403af43e124eac2dd7427960c119acb64e5061e4f1f8a63a3cef0c554bdda023c55d343770b576e38f23864f6757dbdc13abf9994e26fadd586884a17596c0";
+        let s = "02f8b282012c0584017d784084017d7840830bb15b9423a1afd896c8c8876af46adc38521f4432658d1e80b844a9059cbb00000000000000000000000077422c40aa1864f3f873ece9409aa1fce86c34cc00000000000000000000000000000000000000000000000006f05b59d3b20000c080a0ef60403af43e124eac2dd7427960c119acb64e5061e4f1f8a63a3cef0c554bdda023c55d343770b576e38f23864f6757dbdc13abf9994e26fadd586884a17596c0";
         let tx_bytes = hex::decode(s).unwrap();
         let (mut tx, hash) = self.state.parse_transaction_bytes(&tx_bytes)?;
         tx.set_input(tx_bytes, hash);
@@ -195,16 +197,35 @@ impl DebugNamespace {
         let executor = &self.state.tx_sender.0.executor;
         let result = executor
             .execute_tx_eth_call(
-                vm_permit,
-                shared_args,
+                vm_permit.clone(),
+                shared_args.clone(),
                 self.state.connection_pool.clone(),
                 call_overrides,
                 tx.clone(),
                 block_args,
                 self.sender_config().vm_execution_cache_misses_limit,
-                custom_tracers,
+                custom_tracers.clone(),
             )
             .await?;
+
+        {
+            let execution_args = TxExecutionArgs::for_validation(&tx);
+            let vm_permit = vm_permit.ok_or(SubmitTxError::ServerShuttingDown)?;
+
+            let output = executor
+                .execute_tx_in_sandbox(
+                    vm_permit,
+                    shared_args,
+                    false,
+                    execution_args,
+                    self.state.connection_pool.clone(),
+                    tx.clone().into(),
+                    block_args,
+                    custom_tracers,
+                )
+                .await?;
+            tracing::info!("xxxxxxxxxx event: {:?}", output.vm.logs.events);
+        }
 
         let (output, revert_reason) = match result.result {
             ExecutionResult::Success { output, .. } => (output, None),
