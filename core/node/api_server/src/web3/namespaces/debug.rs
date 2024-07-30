@@ -168,9 +168,9 @@ impl DebugNamespace {
 
         let call_overrides = request.get_call_overrides()?;
         let tx = L2Tx::from_request(request.into(), MAX_ENCODED_TX_SIZE)?;
-        let s = "02f8b282012c0484017d784084017d78408307d88c9423a1afd896c8c8876af46adc38521f4432658d1e80b844a9059cbb00000000000000000000000077422c40aa1864f3f873ece9409aa1fce86c34cc0000000000000000000000000000000000000000000000000de0b6b3a7640000c001a02a35900b60e0c1b7549574f3123454d2994d1c9e676d9a05e4e7410e9a0b8bfda02d30a1219424fbac11bd572616decc2f160f5790a5ac7ee5fccfdb1f41dd5ad4";
-        let tx_bytes = hex::decode(s).unwrap().into();
-        let (mut tx, hash) = self.state.parse_transaction_bytes(&tx_bytes.0)?;
+        let s = "0x02f8b282012c0584017d784084017d7840830bb15b9423a1afd896c8c8876af46adc38521f4432658d1e80b844a9059cbb00000000000000000000000077422c40aa1864f3f873ece9409aa1fce86c34cc00000000000000000000000000000000000000000000000006f05b59d3b20000c080a0ef60403af43e124eac2dd7427960c119acb64e5061e4f1f8a63a3cef0c554bdda023c55d343770b576e38f23864f6757dbdc13abf9994e26fadd586884a17596c0";
+        let tx_bytes = hex::decode(s).unwrap();
+        let (mut tx, hash) = self.state.parse_transaction_bytes(&tx_bytes)?;
         tx.set_input(tx_bytes, hash);
         tracing::info!("tx: {}", serde_json::to_string_pretty(&tx).unwrap());
 
