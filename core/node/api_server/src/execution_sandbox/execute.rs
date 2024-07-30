@@ -3,6 +3,7 @@
 use anyhow::Context as _;
 use tracing::{span, Level};
 use zksync_dal::{ConnectionPool, Core};
+use zksync_multivm::vm_latest::VmExecutionLogs;
 use zksync_multivm::{
     interface::{TxExecutionMode, VmExecutionResultAndLogs, VmInterface},
     tracers::StorageInvocations,
@@ -198,5 +199,49 @@ impl TransactionExecutor {
             )
             .await?;
         Ok(output.vm)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[tracing::instrument(skip_all)]
+    pub async fn execute_log_in_sandbox(
+        &self,
+        vm_permit: VmPermit,
+        shared_args: TxSharedArgs,
+        adjust_pubdata_price: bool,
+        execution_args: TxExecutionArgs,
+        connection_pool: ConnectionPool<Core>,
+        tx: Transaction,
+        block_args: BlockArgs,
+        custom_tracers: Vec<ApiTracer>,
+    ) -> anyhow::Result<VmExecutionLogs> {
+        let (_, result) = tokio::task::spawn_blocking(move || {
+            let result = apply::apply_log_in_sandbox(
+                vm_permit,
+                shared_args,
+                adjust_pubdata_price,
+                &execution_args,
+                &connection_pool,
+                tx,
+                block_args,
+                |vm, tx, _| {
+                    let storage_invocation_tracer =
+                        StorageInvocations::new(execution_args.missed_storage_invocation_limit);
+                    let custom_tracers: Vec<_> = custom_tracers
+                        .into_iter()
+                        .map(|tracer| tracer.into_boxed())
+                        .chain(vec![storage_invocation_tracer.into_tracer_pointer()])
+                        .collect();
+                    vm.inspect_transaction_with_bytecode_compression(
+                        custom_tracers.into(),
+                        tx,
+                        true,
+                    )
+                },
+            );
+            result
+        })
+        .await
+        .context("transaction execution panicked")??;
+        Ok(result.logs)
     }
 }

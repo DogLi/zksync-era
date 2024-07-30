@@ -352,6 +352,37 @@ pub(super) fn apply_vm_in_sandbox<T>(
     Ok(result)
 }
 
+#[allow(clippy::too_many_arguments)]
+pub(super) fn apply_log_in_sandbox<T>(
+    vm_permit: VmPermit,
+    shared_args: TxSharedArgs,
+    adjust_pubdata_price: bool,
+    execution_args: &TxExecutionArgs,
+    connection_pool: &ConnectionPool<Core>,
+    tx: Transaction,
+    block_args: BlockArgs,
+    apply: impl FnOnce(
+        &mut VmInstance<StorageView<PostgresStorage<'_>>, HistoryDisabled>,
+        Transaction,
+        ProtocolVersionId,
+    ) -> T,
+) -> anyhow::Result<T> {
+    let rt_handle = vm_permit.rt_handle();
+    let connection = rt_handle
+        .block_on(connection_pool.connection_tagged("api"))
+        .context("failed acquiring DB connection")?;
+    let sandbox = rt_handle.block_on(Sandbox::new(
+        connection,
+        shared_args,
+        execution_args,
+        block_args,
+    ))?;
+    let protocol_version = sandbox.system_env.version;
+    let (mut vm, _storage_view) = sandbox.into_vm(&tx, adjust_pubdata_price);
+    let result = apply(&mut vm, tx, protocol_version);
+    Ok(result)
+}
+
 #[derive(Debug, Clone, Copy)]
 struct StoredL2BlockInfo {
     l2_block_number: u32,

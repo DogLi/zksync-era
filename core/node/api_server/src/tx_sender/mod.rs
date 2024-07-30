@@ -9,6 +9,7 @@ use zksync_contracts::BaseSystemContracts;
 use zksync_dal::{
     transactions_dal::L2TxSubmissionResult, Connection, ConnectionPool, Core, CoreDal,
 };
+use zksync_multivm::vm_latest::VmExecutionLogs;
 use zksync_multivm::{
     interface::VmExecutionResultAndLogs,
     utils::{
@@ -352,6 +353,31 @@ impl TxSender {
             .connection_tagged("api")
             .await
             .context("failed acquiring connection to replica DB")
+    }
+
+    #[tracing::instrument(level = "debug", skip_all, fields(tx.hash = ?tx.hash()))]
+    pub async fn execute_tx_in_sandbox(&self, tx: L2Tx) -> Result<VmExecutionLogs, SubmitTxError> {
+        let shared_args = self.shared_args().await?;
+        let mut connection = self.acquire_replica_connection().await?;
+        let block_args = BlockArgs::pending(&mut connection).await?;
+        let tx = tx.clone().into();
+        let vm_permit = self.0.vm_concurrency_limiter.acquire().await;
+        let vm_permit = vm_permit.ok_or(SubmitTxError::ServerShuttingDown)?;
+        let execution_output = self
+            .0
+            .executor
+            .execute_log_in_sandbox(
+                vm_permit.clone(),
+                shared_args.clone(),
+                true,
+                TxExecutionArgs::for_validation(&tx),
+                self.0.replica_connection_pool.clone(),
+                tx.clone().into(),
+                block_args,
+                vec![],
+            )
+            .await?;
+        Ok(execution_output)
     }
 
     #[tracing::instrument(level = "debug", skip_all, fields(tx.hash = ?tx.hash()))]
