@@ -7,15 +7,7 @@ use zksync_multivm::{
     interface::ExecutionResult, vm_latest::constants::BATCH_COMPUTATIONAL_GAS_LIMIT,
 };
 use zksync_system_constants::MAX_ENCODED_TX_SIZE;
-use zksync_types::{
-    api::{BlockId, BlockNumber, DebugCall, ResultDebugCall, TracerConfig},
-    debug_flat_call::{flatten_debug_calls, DebugCallFlat},
-    fee_model::BatchFeeInput,
-    l2::L2Tx,
-    transaction_request::CallRequest,
-    vm_trace::Call,
-    AccountTreeId, H256,
-};
+use zksync_types::{api::{BlockId, BlockNumber, DebugCall, ResultDebugCall, TracerConfig}, debug_flat_call::{flatten_debug_calls, DebugCallFlat}, fee_model::BatchFeeInput, l2::L2Tx, transaction_request::CallRequest, vm_trace::Call, AccountTreeId, H256, PackedEthSignature};
 use zksync_web3_decl::error::Web3Error;
 
 use crate::{
@@ -169,12 +161,15 @@ impl DebugNamespace {
         }
 
         let call_overrides = request.get_call_overrides()?;
-        let tx = L2Tx::from_request(request.into(), MAX_ENCODED_TX_SIZE)?;
-        let s = "02f8b282012c0584017d784084017d7840830bb15b9423a1afd896c8c8876af46adc38521f4432658d1e80b844a9059cbb00000000000000000000000077422c40aa1864f3f873ece9409aa1fce86c34cc00000000000000000000000000000000000000000000000006f05b59d3b20000c080a0ef60403af43e124eac2dd7427960c119acb64e5061e4f1f8a63a3cef0c554bdda023c55d343770b576e38f23864f6757dbdc13abf9994e26fadd586884a17596c0";
-        let tx_bytes = hex::decode(s).unwrap();
-        let (mut tx, hash) = self.state.parse_transaction_bytes(&tx_bytes)?;
-        tx.set_input(tx_bytes, hash);
-        tracing::info!("tx: {}", serde_json::to_string_pretty(&tx).unwrap());
+        let mut tx = L2Tx::from_request(request.into(), MAX_ENCODED_TX_SIZE)?;
+        // let s = "02f8b282012c0584017d784084017d7840830bb15b9423a1afd896c8c8876af46adc38521f4432658d1e80b844a9059cbb00000000000000000000000077422c40aa1864f3f873ece9409aa1fce86c34cc00000000000000000000000000000000000000000000000006f05b59d3b20000c080a0ef60403af43e124eac2dd7427960c119acb64e5061e4f1f8a63a3cef0c554bdda023c55d343770b576e38f23864f6757dbdc13abf9994e26fadd586884a17596c0";
+        // let tx_bytes = hex::decode(s).unwrap();
+        // let (mut tx, hash) = self.state.parse_transaction_bytes(&tx_bytes)?;
+        // tx.set_input(tx_bytes, hash);
+        // tracing::info!("tx: {}", serde_json::to_string_pretty(&tx).unwrap());
+        if tx.common_data.signature.is_empty() {
+            tx.common_data.signature = PackedEthSignature::default().serialize_packed().into();
+        }
 
 
         let shared_args = self.shared_args().await;
