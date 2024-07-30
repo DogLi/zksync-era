@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Context as _;
 use once_cell::sync::OnceCell;
-use multivm::vm_1_4_1::TxExecutionMode;
+use zksync_multivm::interface::TxExecutionMode;
 use zksync_dal::{CoreDal, DalError};
 use zksync_multivm::{
     interface::ExecutionResult, vm_latest::constants::BATCH_COMPUTATIONAL_GAS_LIMIT,
@@ -168,12 +168,6 @@ impl DebugNamespace {
         let (mut tx2, hash) = self.state.parse_transaction_bytes(&tx_bytes)?;
         tx2.set_input(tx_bytes, hash);
 
-        // tracing::info!("tx: {}", serde_json::to_string_pretty(&tx).unwrap());
-        if tx.common_data.signature.is_empty() {
-            // tx.common_data.signature = tx2.common_data.signature.clone();
-            tx.common_data.signature = PackedEthSignature::default().serialize_packed().into();
-            // tx.set_input(tx_bytes, hash);
-        }
 
 
         let shared_args = self.shared_args().await;
@@ -210,12 +204,19 @@ impl DebugNamespace {
             .await?;
 
         {
-            // let execution_args = TxExecutionArgs::for_validation(&tx);
-            let mut execution_args = TxExecutionArgs::for_eth_call(
-                enforced_base_fee,
-                self.sender_config().vm_execution_cache_misses_limit,
-            );
-            execution_args.execution_mode = TxExecutionMode::EstimateFee;
+            // tracing::info!("tx: {}", serde_json::to_string_pretty(&tx).unwrap());
+            if tx.common_data.signature.is_empty() {
+                tx.common_data.signature = PackedEthSignature::default().serialize_packed().into();
+                // tx.common_data.signature = tx2.common_data.signature.clone();
+                // tx.set_input(tx_bytes, hash);
+            }
+
+            let execution_args = TxExecutionArgs::for_validation(&tx);
+            // let mut execution_args = TxExecutionArgs::for_eth_call(
+            //     enforced_base_fee,
+            //     self.sender_config().vm_execution_cache_misses_limit,
+            // );
+            // execution_args.execution_mode = TxExecutionMode::EstimateFee;
 
             let custom_tracers = if only_top_call {
                 vec![]
@@ -227,7 +228,7 @@ impl DebugNamespace {
                 .execute_tx_in_sandbox(
                     vm_permit,
                     shared_args,
-                    false,
+                    true,
                     execution_args,
                     self.state.connection_pool.clone(),
                     tx.clone().into(),
