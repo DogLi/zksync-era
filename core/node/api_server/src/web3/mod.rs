@@ -110,6 +110,7 @@ impl Namespace {
         Self::Zks,
         Self::En,
         Self::Pubsub,
+        Self::Debug,
     ];
 }
 

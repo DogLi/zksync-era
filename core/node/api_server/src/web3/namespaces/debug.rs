@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use anyhow::Context as _;
-use multivm::vm_latest::VmExecutionResultAndLogs;
 use once_cell::sync::OnceCell;
 use zksync_dal::{CoreDal, DalError};
+use zksync_multivm::vm_latest::VmExecutionLogs;
 use zksync_multivm::{
     interface::ExecutionResult, vm_latest::constants::BATCH_COMPUTATIONAL_GAS_LIMIT,
 };
@@ -135,7 +135,7 @@ impl DebugNamespace {
         mut request: CallRequest,
         block_id: Option<BlockId>,
         options: Option<TracerConfig>,
-    ) -> Result<(DebugCall, VmExecutionResultAndLogs), Web3Error> {
+    ) -> Result<DebugCall, Web3Error> {
         let block_id = block_id.unwrap_or(BlockId::Number(BlockNumber::Pending));
         self.current_method().set_block_id(block_id);
 
@@ -211,7 +211,7 @@ impl DebugNamespace {
                 ))
             }
         };
-        let logs = result.logs;
+        let events = result.logs.events;
 
         // We had only one copy of Arc this arc is already dropped it's safe to unwrap
         let trace = Arc::try_unwrap(call_tracer_result)
@@ -227,7 +227,9 @@ impl DebugNamespace {
             revert_reason,
             trace,
         );
-        Ok((call.into(), logs))
+        let mut debug_call: DebugCall = call.into();
+        debug_call.events = events;
+        Ok(debug_call)
     }
 
     async fn shared_args(&self) -> TxSharedArgs {

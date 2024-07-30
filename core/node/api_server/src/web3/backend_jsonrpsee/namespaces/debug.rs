@@ -49,7 +49,7 @@ impl DebugNamespaceServer for DebugNamespace {
         block: Option<BlockId>,
         options: Option<TracerConfig>,
     ) -> RpcResult<DebugCall> {
-        let (debug_call, logs) = self
+        let debug_call = self
             .debug_trace_call_impl(request, block, options)
             .await
             .map_err(|err| self.current_method().map_err(err))?;

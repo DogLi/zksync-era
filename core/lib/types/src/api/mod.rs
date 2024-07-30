@@ -619,6 +619,7 @@ pub struct DebugCall {
     pub error: Option<String>,
     pub revert_reason: Option<String>,
     pub calls: Vec<DebugCall>,
+    pub events: Vec<VmEvent>,
 }
 
 impl From<Call> for DebugCall {
