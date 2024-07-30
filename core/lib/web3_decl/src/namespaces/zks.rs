@@ -7,6 +7,7 @@ use zksync_types::{
     api::{
         state_override::StateOverride, BlockDetails, BridgeAddresses, L1BatchDetails,
         L2ToL1LogProof, Proof, ProtocolVersion, TransactionDetailedResult, TransactionDetails,
+        TransactionPreExecuteInfo,
     },
     fee::Fee,
     fee_model::{FeeParams, PubdataIndependentBatchFeeModelInput},
@@ -139,4 +140,10 @@ pub trait ZksNamespace {
         &self,
         tx_bytes: Bytes,
     ) -> RpcResult<TransactionDetailedResult>;
+
+    #[method(name = "getRawTransactionLogs")]
+    async fn get_raw_transaction_logs(
+        &self,
+        tx_bytes: Bytes,
+    ) -> RpcResult<TransactionPreExecuteInfo>;
 }

@@ -5,6 +5,7 @@ use zksync_dal::{Connection, Core, CoreDal, DalError};
 use zksync_metadata_calculator::api_server::TreeApiError;
 use zksync_mini_merkle_tree::MiniMerkleTree;
 use zksync_multivm::interface::VmExecutionResultAndLogs;
+use zksync_multivm::vm_latest::VmExecutionLogs;
 use zksync_system_constants::DEFAULT_L2_TX_GAS_PER_PUBDATA_BYTE;
 use zksync_types::{
     api::{
@@ -589,5 +590,25 @@ impl ZksNamespace {
             API_METRICS.submit_tx_error[&err.prom_error_code()].inc();
             err.into()
         })
+    }
+
+    #[tracing::instrument(skip(self, tx_bytes))]
+    pub async fn get_raw_transaction_logs_impl(
+        &self,
+        tx_bytes: Bytes,
+    ) -> Result<(H256, VmExecutionLogs), Web3Error> {
+        let (mut tx, hash) = self.state.parse_transaction_bytes(&tx_bytes.0)?;
+        tx.set_input(tx_bytes.0, hash);
+        let exec_logs: Result<_, Web3Error> = self
+            .state
+            .tx_sender
+            .execute_tx_in_sandbox(tx)
+            .await
+            .map_err(|err| {
+                tracing::debug!("execute tx in sandbox error: {err}");
+                err.into()
+            });
+        let logs = exec_logs?;
+        Ok((hash, logs))
     }
 }
