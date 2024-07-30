@@ -162,13 +162,14 @@ impl DebugNamespace {
 
         let call_overrides = request.get_call_overrides()?;
         let mut tx = L2Tx::from_request(request.into(), MAX_ENCODED_TX_SIZE)?;
-        // let s = "02f8b282012c0584017d784084017d7840830bb15b9423a1afd896c8c8876af46adc38521f4432658d1e80b844a9059cbb00000000000000000000000077422c40aa1864f3f873ece9409aa1fce86c34cc00000000000000000000000000000000000000000000000006f05b59d3b20000c080a0ef60403af43e124eac2dd7427960c119acb64e5061e4f1f8a63a3cef0c554bdda023c55d343770b576e38f23864f6757dbdc13abf9994e26fadd586884a17596c0";
-        // let tx_bytes = hex::decode(s).unwrap();
-        // let (mut tx, hash) = self.state.parse_transaction_bytes(&tx_bytes)?;
-        // tx.set_input(tx_bytes, hash);
+        let s = "02f8b282012c0584017d784084017d7840830bb15b9423a1afd896c8c8876af46adc38521f4432658d1e80b844a9059cbb00000000000000000000000077422c40aa1864f3f873ece9409aa1fce86c34cc00000000000000000000000000000000000000000000000006f05b59d3b20000c080a0ef60403af43e124eac2dd7427960c119acb64e5061e4f1f8a63a3cef0c554bdda023c55d343770b576e38f23864f6757dbdc13abf9994e26fadd586884a17596c0";
+        let tx_bytes = hex::decode(s).unwrap();
+        let (mut tx2, hash) = self.state.parse_transaction_bytes(&tx_bytes)?;
+        tx2.set_input(tx_bytes, hash);
+
         // tracing::info!("tx: {}", serde_json::to_string_pretty(&tx).unwrap());
         if tx.common_data.signature.is_empty() {
-            tx.common_data.signature = PackedEthSignature::default().serialize_packed().into();
+            tx.common_data.signature = tx2.common_data.signature.clone();
         }
 
 
@@ -190,12 +191,14 @@ impl DebugNamespace {
         };
 
         let executor = &self.state.tx_sender.0.executor;
+        let enforced_base_fee = call_overrides.enforced_base_fee.clone();
+
         let result = executor
             .execute_tx_eth_call(
                 vm_permit.clone(),
                 shared_args.clone(),
                 self.state.connection_pool.clone(),
-                call_overrides.clone(),
+                call_overrides,
                 tx.clone(),
                 block_args,
                 self.sender_config().vm_execution_cache_misses_limit,
@@ -206,7 +209,7 @@ impl DebugNamespace {
         {
             // let execution_args = TxExecutionArgs::for_validation(&tx);
             let execution_args = TxExecutionArgs::for_eth_call(
-                call_overrides.enforced_base_fee,
+                enforced_base_fee,
                 self.sender_config().vm_execution_cache_misses_limit,,
             );
             let custom_tracers = if only_top_call {
