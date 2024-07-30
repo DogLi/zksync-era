@@ -199,13 +199,18 @@ impl DebugNamespace {
                 tx.clone(),
                 block_args,
                 self.sender_config().vm_execution_cache_misses_limit,
-                custom_tracers.clone(),
+                custom_tracers,
             )
             .await?;
 
         {
             let execution_args = TxExecutionArgs::for_validation(&tx);
             let vm_permit = vm_permit.ok_or(SubmitTxError::ServerShuttingDown)?;
+            let custom_tracers = if only_top_call {
+                vec![]
+            } else {
+                vec![ApiTracer::CallTracer(call_tracer_result.clone())]
+            };
 
             let output = executor
                 .execute_tx_in_sandbox(
