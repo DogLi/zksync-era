@@ -211,6 +211,7 @@ impl DebugNamespace {
                 ))
             }
         };
+        let events = result.logs.events;
 
         // We had only one copy of Arc this arc is already dropped it's safe to unwrap
         let trace = Arc::try_unwrap(call_tracer_result)
@@ -226,7 +227,9 @@ impl DebugNamespace {
             revert_reason,
             trace,
         );
-        Ok(call.into())
+        let mut debug_call: DebugCall = call.into();
+        debug_call.events = events;
+        Ok(debug_call)
     }
 
     async fn shared_args(&self) -> TxSharedArgs {

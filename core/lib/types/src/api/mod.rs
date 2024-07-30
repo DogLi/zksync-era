@@ -14,7 +14,7 @@ pub use crate::transaction_request::{
 use crate::{
     protocol_version::L1VerifierConfig,
     vm_trace::{Call, CallType},
-    Address, L2BlockNumber, ProtocolVersionId,
+    Address, L2BlockNumber, ProtocolVersionId, VmEvent,
 };
 
 pub mod en;
@@ -623,6 +623,9 @@ pub struct DebugCall {
     pub error: Option<String>,
     pub revert_reason: Option<String>,
     pub calls: Vec<DebugCall>,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub events: Vec<VmEvent>,
 }
 
 impl From<Call> for DebugCall {
@@ -645,6 +648,7 @@ impl From<Call> for DebugCall {
             error: value.error.clone(),
             revert_reason: value.revert_reason,
             calls,
+            events: vec![],
         }
     }
 }
