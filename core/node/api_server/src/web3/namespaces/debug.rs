@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Context as _;
 use once_cell::sync::OnceCell;
+use multivm::vm_1_4_1::TxExecutionMode;
 use zksync_dal::{CoreDal, DalError};
 use zksync_multivm::{
     interface::ExecutionResult, vm_latest::constants::BATCH_COMPUTATIONAL_GAS_LIMIT,
@@ -169,7 +170,9 @@ impl DebugNamespace {
 
         // tracing::info!("tx: {}", serde_json::to_string_pretty(&tx).unwrap());
         if tx.common_data.signature.is_empty() {
-            tx.common_data.signature = tx2.common_data.signature.clone();
+            // tx.common_data.signature = tx2.common_data.signature.clone();
+            tx.common_data.signature = PackedEthSignature::default().serialize_packed().into();
+            // tx.set_input(tx_bytes, hash);
         }
 
 
@@ -208,10 +211,12 @@ impl DebugNamespace {
 
         {
             // let execution_args = TxExecutionArgs::for_validation(&tx);
-            let execution_args = TxExecutionArgs::for_eth_call(
+            let mut execution_args = TxExecutionArgs::for_eth_call(
                 enforced_base_fee,
-                self.sender_config().vm_execution_cache_misses_limit,,
+                self.sender_config().vm_execution_cache_misses_limit,
             );
+            execution_args.execution_mode = TxExecutionMode::EstimateFee;
+
             let custom_tracers = if only_top_call {
                 vec![]
             } else {
