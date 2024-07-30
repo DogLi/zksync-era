@@ -195,7 +195,7 @@ impl DebugNamespace {
                 vm_permit.clone(),
                 shared_args.clone(),
                 self.state.connection_pool.clone(),
-                call_overrides,
+                call_overrides.clone(),
                 tx.clone(),
                 block_args,
                 self.sender_config().vm_execution_cache_misses_limit,
@@ -204,8 +204,11 @@ impl DebugNamespace {
             .await?;
 
         {
-            let execution_args = TxExecutionArgs::for_validation(&tx);
-            let vm_permit = vm_permit.ok_or(SubmitTxError::ServerShuttingDown)?;
+            // let execution_args = TxExecutionArgs::for_validation(&tx);
+            let execution_args = TxExecutionArgs::for_eth_call(
+                call_overrides.enforced_base_fee,
+                self.sender_config().vm_execution_cache_misses_limit,,
+            );
             let custom_tracers = if only_top_call {
                 vec![]
             } else {

@@ -39,7 +39,7 @@ impl TxExecutionArgs {
         }
     }
 
-    fn for_eth_call(
+    pub fn for_eth_call(
         enforced_base_fee: Option<u64>,
         vm_execution_cache_misses_limit: Option<usize>,
     ) -> Self {
