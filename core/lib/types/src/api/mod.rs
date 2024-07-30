@@ -14,7 +14,7 @@ pub use crate::transaction_request::{
 use crate::{
     protocol_version::L1VerifierConfig,
     vm_trace::{Call, CallType},
-    Address, L2BlockNumber, ProtocolVersionId,
+    Address, L2BlockNumber, ProtocolVersionId, VmEvent,
 };
 
 pub mod en;
@@ -642,6 +642,7 @@ impl From<Call> for DebugCall {
             error: value.error.clone(),
             revert_reason: value.revert_reason,
             calls,
+            events: vec![],
         }
     }
 }
